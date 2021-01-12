@@ -1,0 +1,185 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="./anime.min.js"></script>
+  <style>
+    .property-keyframes-demo {
+      display: flex;
+      width: 100%;
+      height: 400px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .el {
+      transform: translateX(11, 11, 11);
+      width: 60px;
+      height: 60px;
+      background: green;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="property-keyframes-demo">
+    <div class="el"></div>
+  </div>
+</body>
+<script>
+  window.animations = {};
+  window._tranEase = (ease) => {
+    switch (ease) {
+      case 'ease-out':
+        return 'easeOutCubic';
+        break;
+      case 'ease-in':
+        return 'easeInCubic';
+        break;
+      case undefined:
+      default:
+        return 'easeInOutCubic';
+        break;
+    }
+  }
+  /**
+   * 清除animate后遗留的样式属性
+   * @param selector 选择器（同 SelectorQuery.select 的选择器格式）
+   * @param options 需要清除的属性，不填写则全部清除
+   * @param callback 清除完成后的回调函数
+   */
+  const clearAnimation = (selector, options, callback) => {
+    // tslint:disable-next-line: no-console
+    if (typeof options === 'function') {
+      // todo clear options
+      callback = options;
+      options = {};
+      if (!this.animations || !this.animations[selector]) return;
+      console.log('reset+', selector, this.animations[selector])
+      anime.set(selector, this.animations[selector]);
+      delete this.animations[selector];
+      callback();
+    }
+    else {
+      // todo clear options
+      if (typeof callback === 'function') {
+        callback();
+      }
+    }
+  }
+  const saveAnimateKey = (targets, selector, key) => {
+    let value = anime.get(targets, key);
+    console.log('save+', key, value, selector)
+    if (!this.animations[selector]) this.animations[selector] = {};
+    this.animations[selector][key] = value;
+  }
+
+  const animate = (selector, keyframes, duration, callback) => {
+    if (document && document.querySelector) {
+      const supportedProps = ['opacity', 'zoom', 'ease', 'scale', 'scale3d', 'translate3d']
+      let targets = document.querySelector(selector);
+      let animeConfig = {
+        targets,
+      };
+      const _animeConfig = {};
+
+      keyframes.map((keyframe, idx) => {
+        if (!(keyframe['offset'] >= 0 && keyframe['offset'] <= 1)) keyframe['offset'] = keyframes.length === 1 ? 1 : idx / (keyframes.length - 1);
+      })
+      const scaleKeys = ['scaleX', 'scaleY', 'scaleZ'];
+      const translateKeys = ['translateX', 'translateY', 'translateZ'];
+      for (let keyframe of keyframes) {
+        for (let key in keyframe) {
+          switch (key) {
+            case 'offset':
+              break;
+            case 'opacity':
+            case 'zoom':
+              if (!_animeConfig[key]) _animeConfig[key] = {};
+              _animeConfig[key][keyframe['offset']] = { value: keyframe[key], easing: this._tranEase(keyframe['ease']), duration: duration * keyframe['offset'] }
+            case 'scale':
+            case 'scale3d':
+              for (let index in keyframe[key]) { // [1,2,3?]
+                let _key = scaleKeys[index];
+                if (!_animeConfig[_key]) _animeConfig[_key] = {};
+                _animeConfig[_key][keyframe['offset']] = { value: keyframe[key][index], easing: this._tranEase(keyframe['ease']), duration: duration * keyframe['offset'] }
+              }
+              break;
+            case 'translate3d':
+              for (let index in keyframe[key]) { // [1,2,3?]
+                let _key = translateKeys[index];
+                if (!_animeConfig[_key]) _animeConfig[_key] = {};
+                _animeConfig[_key][keyframe['offset']] = { value: keyframe[key][index], easing: this._tranEase(keyframe['ease']), duration: duration * keyframe['offset'] }
+              }
+              break;
+            case 'ease':
+              break;
+          }
+        }
+      }
+      for (let key in _animeConfig) {
+        animeConfig[key] = Object.values(_animeConfig[key])
+        saveAnimateKey(targets, selector, key);
+      }
+      console.log('animeConfig', animeConfig)
+      const ani = anime(animeConfig);
+      ani.finished.then(() => {
+        if (typeof callback === 'function') callback()
+      });
+      return ani;
+    }
+    // todo animate
+    if (typeof callback === 'function') { callback(); }
+  }
+  animate('.property-keyframes-demo .el',
+    [{
+      // opacity: 1,
+      // zoom: 1,
+      ease: 'ease-in',
+      translate3d: [0, 0, 0],
+      scale: [1, 0],
+    }, {
+      // opacity: .2,
+      // zoom: 2,
+      ease: 'ease',
+      translate3d: [400, 400, 400],
+      scale: [1, 2],
+    }],
+    1000,
+    () => {
+      console.log('callback done')
+      clearAnimation('.property-keyframes-demo .el', () => { console.log('clearAnimation done') })
+    }
+  )
+  // anime({
+  //   targets: '.property-keyframes-demo .el',
+  //   translateX: [
+  //     { value: 0, duration: 0 },
+  //     { value: 250, duration: 1000, easing: 'easeOutExpo' }
+  //   ],
+  //   // translateY: [
+  //   //   { value: -40, duration: 500 },
+  //   //   { value: 40, duration: 500, delay: 1000 },
+  //   //   { value: 0, duration: 500, delay: 1000 }
+  //   // ],
+  //   scaleX: [
+  //     { value: 4, duration: 100, delay: 500, easing: 'easeOutExpo' },
+  //     { value: 1, duration: 900 },
+  //     { value: 4, duration: 100, delay: 500, easing: 'easeOutExpo' },
+  //     { value: 1, duration: 900 }
+  //   ],
+  //   // scaleY: [
+  //   //   { value: [1.75, 1], duration: 500 },
+  //   //   { value: 2, duration: 50, delay: 1000, easing: 'easeOutExpo' },
+  //   //   { value: 1, duration: 450 },
+  //   //   { value: 1.75, duration: 50, delay: 1000, easing: 'easeOutExpo' },
+  //   //   { value: 1, duration: 450 }
+  //   // ],
+  //   easing: ['easeInOutQuad', 'easeInOutCubic', 'easeInQuad', 'easeInCubic'][0],//
+  //   // loop: true
+  // });
+</script>
+
+</html>
